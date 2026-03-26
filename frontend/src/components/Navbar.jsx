@@ -2,6 +2,16 @@ import React from "react";
 import Icon from "./Icon.jsx";
 
 const Navbar = ({ user, onLogout }) => {
+  const initials =
+    user?.avatar ||
+    user?.name
+      ?.split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") ||
+    "U";
+
   return (
     <nav className="flex items-center px-6 h-[56px] bg-[var(--color-background-primary)] border-b border-[var(--color-border-tertiary)] sticky top-0 z-40">
       <div className="flex items-center gap-3 flex-1">
@@ -19,7 +29,7 @@ const Navbar = ({ user, onLogout }) => {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 px-2 py-1 rounded-lg bg-[var(--color-background-secondary)]">
           <div className="w-[26px] h-[26px] rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-[11px] font-bold text-white">
-            {user.avatar}
+            {initials}
           </div>
           <span className="text-[13px] font-medium text-[var(--color-text-primary)]">
             {user.name}

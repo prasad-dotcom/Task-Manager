@@ -1,16 +1,28 @@
 import React from "react";
 import Icon from "./Icon.jsx";
 
-const AnalyticsPanel = ({ tasks }) => {
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.status === "Done").length;
-  const inProgress = tasks.filter((t) => t.status === "In Progress").length;
-  const todo = tasks.filter((t) => t.status === "Todo").length;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const highPri = tasks.filter((t) => t.priority === "High" && t.status !== "Done").length;
-  const overdue = tasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "Done"
+const AnalyticsPanel = ({ tasks, analytics }) => {
+  const total = analytics?.overview?.total ?? tasks.length;
+  const done = analytics?.overview?.completed ?? tasks.filter((t) => t.status === "Done").length;
+  const inProgress =
+    analytics?.overview?.inProgress ??
+    tasks.filter((t) => t.status === "In Progress").length;
+  const todo = analytics?.overview?.todo ?? tasks.filter((t) => t.status === "Todo").length;
+  const pct = analytics?.overview?.completionRate ?? (total ? Math.round((done / total) * 100) : 0);
+  const overdue =
+    analytics?.overview?.overdue ??
+    tasks.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "Done").length;
+
+  const highPriPending = tasks.filter(
+    (t) => t.priority === "High" && t.status !== "Done"
   ).length;
+
+  const getByStatusCount = (status) =>
+    analytics?.byStatus?.find((s) => s._id === status)?.count ?? tasks.filter((t) => t.status === status).length;
+
+  const getByPriorityCount = (priority) =>
+    analytics?.byPriority?.find((p) => p._id === priority)?.count ??
+    tasks.filter((t) => t.priority === priority).length;
 
   const StatCard = ({ label, value, icon, accent }) => (
     <div className="rounded-xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] flex items-center gap-4 px-[18px] py-[16px]">
@@ -65,7 +77,7 @@ const AnalyticsPanel = ({ tasks }) => {
         <StatCard label="Overdue" value={overdue} icon="alert" accent="#EF4444" />
         <StatCard
           label="High Priority"
-          value={highPri}
+          value={highPriPending}
           icon="fire"
           accent="#BE123C"
         />
@@ -82,9 +94,14 @@ const AnalyticsPanel = ({ tasks }) => {
           <div className="text-[13px] font-semibold mb-4 text-[var(--color-text-primary)]">
             Status breakdown
           </div>
-          <BarRow label="Done" count={done} max={total} color="#22C55E" />
-          <BarRow label="In Progress" count={inProgress} max={total} color="#F97316" />
-          <BarRow label="Todo" count={todo} max={total} color="#6366F1" />
+          <BarRow label="Done" count={getByStatusCount("Done")} max={total} color="#22C55E" />
+          <BarRow
+            label="In Progress"
+            count={getByStatusCount("In Progress")}
+            max={total}
+            color="#F97316"
+          />
+          <BarRow label="Todo" count={getByStatusCount("Todo")} max={total} color="#6366F1" />
 
           <div className="mt-4 px-4 py-3 bg-[#6366F115] rounded-lg flex items-center gap-2.5">
             <div className="flex-1 h-[10px] bg-[var(--color-background-secondary)] rounded-full overflow-hidden">
@@ -110,7 +127,7 @@ const AnalyticsPanel = ({ tasks }) => {
               <BarRow
                 key={p}
                 label={p}
-                count={tasks.filter((t) => t.priority === p).length}
+                count={getByPriorityCount(p)}
                 max={total}
                 color={c}
               />
@@ -119,8 +136,8 @@ const AnalyticsPanel = ({ tasks }) => {
 
           <div className="mt-3 p-3 bg-[var(--color-background-secondary)] rounded-lg">
             <div className="text-[11px] font-semibold text-[var(--color-text-secondary)]">
-              {highPri > 0
-                ? `⚡ ${highPri} high-priority task${highPri > 1 ? "s" : ""} pending`
+              {highPriPending > 0
+                ? `⚡ ${highPriPending} high-priority task${highPriPending > 1 ? "s" : ""} pending`
                 : "✅ No urgent tasks pending"}
             </div>
           </div>

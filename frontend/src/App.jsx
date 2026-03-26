@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "./components/Navbar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Modal from "./components/Modal.jsx";
@@ -12,117 +12,147 @@ import Analytics from "./pages/Analytics.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 
-const MOCK_USER = { name: "Alex Chen", email: "alex@taskmanager.dev", avatar: "AC" };
-const INITIAL_TASKS = [
-  {
-    id: 1,
-    title: "Design system architecture",
-    description:
-      "Define component hierarchy and state management strategy for the frontend.",
-    status: "Done",
-    priority: "High",
-    dueDate: "2026-03-20",
-    createdAt: "2026-03-01",
-  },
-  {
-    id: 2,
-    title: "Setup Express backend",
-    description:
-      "Initialize Node.js + Express server with MongoDB connection and folder structure.",
-    status: "In Progress",
-    priority: "High",
-    dueDate: "2026-03-28",
-    createdAt: "2026-03-05",
-  },
-  {
-    id: 3,
-    title: "JWT authentication flow",
-    description:
-      "Implement signup, login, token refresh and auth middleware.",
-    status: "In Progress",
-    priority: "High",
-    dueDate: "2026-03-30",
-    createdAt: "2026-03-06",
-  },
-  {
-    id: 4,
-    title: "Task CRUD API endpoints",
-    description: "Build REST endpoints for create, read, update, delete tasks.",
-    status: "Todo",
-    priority: "Medium",
-    dueDate: "2026-04-05",
-    createdAt: "2026-03-08",
-  },
-  {
-    id: 5,
-    title: "Analytics dashboard",
-    description: "Build stats cards and charts for task insights.",
-    status: "Todo",
-    priority: "Medium",
-    dueDate: "2026-04-10",
-    createdAt: "2026-03-10",
-  },
-  {
-    id: 6,
-    title: "Write unit tests",
-    description: "Jest tests for auth and task modules.",
-    status: "Todo",
-    priority: "Low",
-    dueDate: "2026-04-15",
-    createdAt: "2026-03-12",
-  },
-  {
-    id: 7,
-    title: "Responsive UI polish",
-    description: "Mobile-first styling, dark mode support.",
-    status: "Todo",
-    priority: "Low",
-    dueDate: "2026-04-20",
-    createdAt: "2026-03-14",
-  },
-  {
-    id: 8,
-    title: "Deploy to production",
-    description: "Configure CI/CD pipeline and deploy to cloud.",
-    status: "Todo",
-    priority: "Medium",
-    dueDate: "2026-04-25",
-    createdAt: "2026-03-15",
-  },
-];
+import { authLogin, authMe, authSignup } from "./api/authApi.js";
+import { completeTask, createTask, deleteTask, getTasks, updateTask } from "./api/tasksApi.js";
+import { getAnalytics } from "./api/analyticsApi.js";
+
+const formatDueDateInput = (dueDate) => {
+  if (!dueDate) return "";
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+};
+
+const mapUser = (u) => ({
+  name: u?.name ?? "",
+  email: u?.email ?? "",
+});
+
+const mapTask = (t) => ({
+  id: t?._id || t?.id,
+  title: t?.title ?? "",
+  description: t?.description ?? "",
+  status: t?.status ?? "Todo",
+  priority: t?.priority ?? "Medium",
+  dueDate: formatDueDateInput(t?.dueDate),
+  createdAt: t?.createdAt ?? "",
+});
 
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [authMode, setAuthMode] = useState("login"); // login | signup
-  const [user] = useState(MOCK_USER);
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [user, setUser] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [tab, setTab] = useState("dashboard");
 
   // null | {} (create) | task-object (edit)
   const [modal, setModal] = useState(null);
 
-  const handleSave = (form) => {
-    if (form.id) {
-      setTasks((p) => p.map((t) => (t.id === form.id ? { ...t, ...form } : t)));
-    } else {
-      setTasks((p) => [
-        ...p,
-        { ...form, id: Date.now(), createdAt: new Date().toISOString().split("T")[0] },
-      ]);
-    }
-    setModal(null);
+  const [busy, setBusy] = useState(false);
+
+  const fetchTasks = async () => {
+    const res = await getTasks({ page: 1, limit: 1000 });
+    const list = res?.data?.data?.tasks ?? [];
+    setTasks(list.map(mapTask));
   };
 
-  const handleDelete = (id) => setTasks((p) => p.filter((t) => t.id !== id));
+  const fetchAnalytics = async () => {
+    const res = await getAnalytics();
+    setAnalytics(res?.data?.data ?? null);
+  };
 
-  const handleToggleDone = (task) => {
-    setTasks((p) =>
-      p.map((t) =>
-        t.id === task.id
-          ? { ...t, status: t.status === "Done" ? "Todo" : "Done" }
-          : t
-      )
-    );
+  const refreshAll = async () => {
+    await Promise.all([fetchTasks(), fetchAnalytics()]);
+  };
+
+  const loadSession = async () => {
+    if (!token) return;
+    setBusy(true);
+    try {
+      const res = await authMe();
+      setUser(mapUser(res?.data?.data?.user));
+      await refreshAll();
+      setAuthed(true);
+    } catch (e) {
+      localStorage.removeItem("token");
+      setToken(null);
+      setAuthed(false);
+      setUser(null);
+      setTasks([]);
+      setAnalytics(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const normalizeTaskPayload = (form, extra) => {
+    const dueDate = form?.dueDate ? form.dueDate : null; // input uses "" for empty
+    return {
+      title: form.title,
+      description: form.description || "",
+      status: form.status,
+      priority: form.priority,
+      dueDate,
+      isCompleted: form.status === "Done",
+      ...extra,
+    };
+  };
+
+  const handleSave = async (form) => {
+    setBusy(true);
+    try {
+      if (form?.id) {
+        const payload = normalizeTaskPayload(form);
+        await updateTask(form.id, payload);
+      } else {
+        const payload = normalizeTaskPayload(form);
+        await createTask(payload);
+      }
+      await refreshAll();
+      setModal(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setBusy(true);
+    try {
+      await deleteTask(id);
+      await refreshAll();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleToggleDone = async (task) => {
+    setBusy(true);
+    try {
+      if (task.status === "Done") {
+        // Backend has no "undo complete" endpoint; use PUT update with status.
+        const payload = normalizeTaskPayload(
+          task,
+          {
+            status: "Todo",
+            isCompleted: false,
+          }
+        );
+        // Ensure we send required fields for PUT validation (title required).
+        await updateTask(task.id, payload);
+      } else {
+        await completeTask(task.id);
+      }
+      await refreshAll();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const content = useMemo(() => {
@@ -137,27 +167,74 @@ export default function App() {
       dashboard: <Dashboard tasks={tasks} user={user} />,
       tasks: <Tasks {...props} />,
       kanban: <Kanban {...props} />,
-      analytics: <Analytics tasks={tasks} />,
+      analytics: <Analytics tasks={tasks} analytics={analytics} />,
     };
-  }, [tasks, user]);
+  }, [tasks, user, analytics]);
 
   if (!authed) {
     return authMode === "login" ? (
       <Login
+        isBusy={busy}
         onSwitch={() => setAuthMode((m) => (m === "login" ? "signup" : "login"))}
-        onAuth={() => setAuthed(true)}
+        onAuth={async (form) => {
+          setBusy(true);
+          try {
+            const res = await authLogin({ email: form.email, password: form.password });
+            const tokenFromApi = res?.data?.data?.token;
+            localStorage.setItem("token", tokenFromApi);
+            setToken(tokenFromApi);
+            const meRes = await authMe();
+            setUser(mapUser(meRes?.data?.data?.user));
+            await refreshAll();
+            setAuthed(true);
+          } catch (err) {
+            setBusy(false);
+            throw err;
+          } finally {
+            setBusy(false);
+          }
+        }}
       />
     ) : (
       <Signup
+        isBusy={busy}
         onSwitch={() => setAuthMode((m) => (m === "login" ? "signup" : "login"))}
-        onAuth={() => setAuthed(true)}
+        onAuth={async (form) => {
+          setBusy(true);
+          try {
+            const res = await authSignup({
+              name: form.name,
+              email: form.email,
+              password: form.password,
+            });
+            const tokenFromApi = res?.data?.data?.token;
+            localStorage.setItem("token", tokenFromApi);
+            setToken(tokenFromApi);
+            const meRes = await authMe();
+            setUser(mapUser(meRes?.data?.data?.user));
+            await refreshAll();
+            setAuthed(true);
+          } catch (err) {
+            setBusy(false);
+            throw err;
+          } finally {
+            setBusy(false);
+          }
+        }}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-[var(--color-background-tertiary)] flex flex-col">
-      <Navbar user={user} onLogout={() => setAuthed(false)} />
+      <Navbar user={user} onLogout={() => {
+        localStorage.removeItem("token");
+        setToken(null);
+        setAuthed(false);
+        setUser(null);
+        setTasks([]);
+        setAnalytics(null);
+      }} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar tab={tab} setTab={setTab} />
@@ -169,6 +246,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setModal({})}
+                disabled={busy}
                 className="flex items-center gap-2 px-5 py-[9px] rounded-xl text-white font-bold text-[13px] cursor-pointer bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] shadow-[0_2px_8px_rgba(99,102,241,0.25)]"
               >
                 <span className="inline-flex">

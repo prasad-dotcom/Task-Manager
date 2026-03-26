@@ -1,13 +1,35 @@
 import React, { useState } from "react";
 import Icon from "./Icon.jsx";
 
-const AuthCard = ({ mode, onSwitch, onAuth }) => {
+const AuthCard = ({ mode, onSwitch, onAuth, isBusy }) => {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
 
-  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    setError("");
+    setForm((p) => ({ ...p, [k]: v }));
+  };
+
+  const handleSubmit = async () => {
+    if (isBusy) return;
+    setError("");
+    try {
+      await onAuth(form);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong. Please try again.";
+      setError(msg);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSubmit();
+  };
 
   const inputClass =
-    "w-full rounded-[10px] border border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] px-[14px] py-[10px] font-[inherit] text-[14px] text-[var(--color-text-primary)] outline-none mt-1";
+    "w-full rounded-[10px] border border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] px-[14px] py-[10px] font-[inherit] text-[14px] text-[var(--color-text-primary)] outline-none mt-1 transition focus:border-[#6366F1]";
 
   return (
     <div className="min-h-[100vh] flex items-center justify-center bg-[var(--color-background-tertiary)] p-4">
@@ -31,6 +53,15 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
             {mode === "login" ? "Sign in to your account" : "Create your account"}
           </h2>
 
+          {error && (
+            <div
+              className="mb-4 rounded-lg px-4 py-3 text-[13px] font-medium"
+              style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}
+            >
+              {error}
+            </div>
+          )}
+
           {mode === "signup" && (
             <div className="mb-4">
               <label className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-secondary)]">
@@ -41,6 +72,8 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
                 placeholder="Alex Chen"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isBusy}
               />
             </div>
           )}
@@ -55,6 +88,8 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
               placeholder="you@company.com"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isBusy}
             />
           </div>
 
@@ -68,15 +103,41 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
               placeholder="••••••••"
               value={form.password}
               onChange={(e) => set("password", e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isBusy}
             />
           </div>
 
           <button
             type="button"
-            onClick={() => onAuth(form)}
-            className="w-full rounded-[10px] bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] text-white py-[11px] font-bold text-[15px] tracking-[0.01em]"
+            onClick={handleSubmit}
+            disabled={isBusy}
+            className="w-full rounded-[10px] bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] text-white py-[11px] font-bold text-[15px] tracking-[0.01em] flex items-center justify-center gap-2"
+            style={{ opacity: isBusy ? 0.7 : 1, cursor: isBusy ? "not-allowed" : "pointer" }}
           >
-            {mode === "login" ? "Sign in" : "Create account"}
+            {isBusy ? (
+              <>
+                <svg
+                  className="animate-spin"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#fff"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                {mode === "login" ? "Signing in…" : "Creating account…"}
+              </>
+            ) : mode === "login" ? (
+              "Sign in"
+            ) : (
+              "Create account"
+            )}
           </button>
 
           <p className="text-center text-[13px] text-[var(--color-text-secondary)] mt-4 m-0">
@@ -84,6 +145,7 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
             <button
               type="button"
               onClick={onSwitch}
+              disabled={isBusy}
               className="bg-transparent border-none text-[#6366F1] font-semibold cursor-pointer p-0 ml-1"
             >
               {mode === "login" ? "Sign up" : "Sign in"}
@@ -96,4 +158,3 @@ const AuthCard = ({ mode, onSwitch, onAuth }) => {
 };
 
 export default AuthCard;
-

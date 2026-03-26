@@ -2,7 +2,7 @@ import React from "react";
 import AnalyticsPanel from "../components/AnalyticsPanel.jsx";
 import Icon from "../components/Icon.jsx";
 
-const Analytics = ({ tasks }) => {
+const Analytics = ({ tasks, analytics }) => {
   return (
     <div>
       <div className="mb-5">
@@ -14,7 +14,7 @@ const Analytics = ({ tasks }) => {
           Real-time insights from your task data
         </p>
       </div>
-      <AnalyticsPanel tasks={tasks} />
+      <AnalyticsPanel tasks={tasks} analytics={analytics} />
     </div>
   );
 };
