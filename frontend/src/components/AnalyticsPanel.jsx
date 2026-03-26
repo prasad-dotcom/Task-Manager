@@ -7,7 +7,6 @@ const AnalyticsPanel = ({ tasks, analytics }) => {
   const inProgress =
     analytics?.overview?.inProgress ??
     tasks.filter((t) => t.status === "In Progress").length;
-  const todo = analytics?.overview?.todo ?? tasks.filter((t) => t.status === "Todo").length;
   const pct = analytics?.overview?.completionRate ?? (total ? Math.round((done / total) * 100) : 0);
   const overdue =
     analytics?.overview?.overdue ??

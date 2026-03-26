@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "./components/Navbar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Modal from "./components/Modal.jsx";
@@ -52,20 +52,20 @@ export default function App() {
 
   const [busy, setBusy] = useState(false);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     const res = await getTasks({ page: 1, limit: 1000 });
     const list = res?.data?.data?.tasks ?? [];
     setTasks(list.map(mapTask));
-  };
+  }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     const res = await getAnalytics();
     setAnalytics(res?.data?.data ?? null);
-  };
+  }, []);
 
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     await Promise.all([fetchTasks(), fetchAnalytics()]);
-  };
+  }, [fetchTasks, fetchAnalytics]);
 
   const loadSession = async () => {
     if (!token) return;
@@ -87,13 +87,11 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    loadSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadSession(); }, []);
 
-  const normalizeTaskPayload = (form, extra) => {
-    const dueDate = form?.dueDate ? form.dueDate : null; // input uses "" for empty
+  const normalizeTaskPayload = useCallback((form, extra) => {
+    const dueDate = form?.dueDate ? form.dueDate : null;
     return {
       title: form.title,
       description: form.description || "",
@@ -103,7 +101,7 @@ export default function App() {
       isCompleted: form.status === "Done",
       ...extra,
     };
-  };
+  }, []);
 
   const handleSave = async (form) => {
     setBusy(true);
@@ -122,7 +120,7 @@ export default function App() {
     }
   };
 
-  const handleEdit = async (task) => {
+  const handleEdit = useCallback(async (task) => {
     // Fetch fresh data from server before opening the edit modal.
     try {
       const res = await getTaskById(task.id);
@@ -131,9 +129,9 @@ export default function App() {
       // Fallback: use the locally-cached task object.
       setModal(task);
     }
-  };
+  }, []);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     setBusy(true);
     try {
       await deleteTask(id);
@@ -141,9 +139,9 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [refreshAll]);
 
-  const handleToggleDone = async (task) => {
+  const handleToggleDone = useCallback(async (task) => {
     setBusy(true);
     try {
       if (task.status === "Done") {
@@ -164,7 +162,7 @@ export default function App() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [refreshAll, normalizeTaskPayload]);
 
   const content = useMemo(() => {
     const props = {
@@ -180,7 +178,7 @@ export default function App() {
       kanban: <Kanban {...props} />,
       analytics: <Analytics tasks={tasks} analytics={analytics} />,
     };
-  }, [tasks, user, analytics]);
+  }, [tasks, user, analytics, handleEdit, handleDelete, handleToggleDone]);
 
   if (!authed) {
     return authMode === "login" ? (
