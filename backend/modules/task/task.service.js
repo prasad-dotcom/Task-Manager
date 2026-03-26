@@ -57,7 +57,7 @@ const getTaskById = async(taskId, userId) => {
 };
 
 
-const updateTask = async(taskId, userId) => {
+const updateTask = async(taskId, userId, body) => {
 
     const task = await Task.findOneAndUpdate(
         {_id: taskId, userId},
@@ -102,4 +102,4 @@ const markCompleted = async(taskId, userId) => {
 };
 
 
-export { createTask, getTasks, updateTask , deleteTask, markCompleted  };
+export { createTask, getTasks, getTaskById, updateTask , deleteTask, markCompleted  };

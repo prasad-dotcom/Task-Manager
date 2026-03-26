@@ -8,7 +8,23 @@ import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3000" }));
+// Allow both local and Vercel frontend URLs for CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://task-manager-frontend-eight-tawny.vercel.app"
+];
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {

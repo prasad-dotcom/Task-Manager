@@ -13,7 +13,7 @@ import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 
 import { authLogin, authMe, authSignup } from "./api/authApi.js";
-import { completeTask, createTask, deleteTask, getTasks, updateTask } from "./api/tasksApi.js";
+import { completeTask, createTask, deleteTask, getTaskById, getTasks, updateTask } from "./api/tasksApi.js";
 import { getAnalytics } from "./api/analyticsApi.js";
 
 const formatDueDateInput = (dueDate) => {
@@ -122,6 +122,17 @@ export default function App() {
     }
   };
 
+  const handleEdit = async (task) => {
+    // Fetch fresh data from server before opening the edit modal.
+    try {
+      const res = await getTaskById(task.id);
+      setModal(mapTask(res?.data?.data?.task));
+    } catch {
+      // Fallback: use the locally-cached task object.
+      setModal(task);
+    }
+  };
+
   const handleDelete = async (id) => {
     setBusy(true);
     try {
@@ -158,7 +169,7 @@ export default function App() {
   const content = useMemo(() => {
     const props = {
       tasks,
-      onEdit: (t) => setModal(t),
+      onEdit: handleEdit,
       onDelete: handleDelete,
       onToggleDone: handleToggleDone,
     };

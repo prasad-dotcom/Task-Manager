@@ -4,9 +4,9 @@ const { validationResult } = pkg;
 
 const signup = async (req, res, next) => {
     try {
-        const errors = validateResult(req);
+        const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ success: false, message: errors.arrya()[0].msg });
+            return res.status(400).json({ success: false, message: errors.array()[0].msg });
 
         }
 
@@ -22,7 +22,7 @@ const login = async (req, res, next) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ success: false, message: errors.arrays()[0].msg });
+            return res.status(400).json({ success: false, message: errors.array()[0].msg });
 
         }
         const data = await authService.login(req.body);
