@@ -9,10 +9,9 @@ import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 
 const app = express();
 
-// CORS Configuration - Allow frontend from any origin
+// CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow all origins since frontend is on separate Vercel deployment
     callback(null, true);
   },
   credentials: true,
@@ -23,50 +22,44 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check (doesn't need DB)
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "API is running" });
 });
 
-// Middleware to connect DB once before routes
+// DB connection pool
 let dbConnected = false;
 app.use(async (req, res, next) => {
   if (!dbConnected) {
     try {
       await connectDB();
       dbConnected = true;
-      console.log("[DEBUG] Database connected successfully");
     } catch (error) {
       console.error("[ERROR] DB Connection failed:", error.message);
-      // Don't return error here, let request continue (some endpoints don't need DB)
     }
   }
   next();
 });
 
-app.use("/api/auth",      authRoutes);
-app.use("/api/tasks",     taskRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// Register notFound as the last route handler
+// Error handling
 app.use(notFound);
-
-// Register errorHandler as the last middleware (must have 4 args)
 app.use((err, req, res, next) => {
   console.log("[DEBUG] Error handler called:", err);
   errorHandler(err, req, res, next);
 });
 
-// For local development
+// For local development only
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`[DEBUG] Server running on http://localhost:${PORT}`);
   });
 }
-
-// Export for Vercel serverless functions
-export default app;
 });
 
 const PORT = process.env.PORT || 5000;

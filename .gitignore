@@ -41,6 +41,5 @@ FIX_DEPLOYMENT.md
 VERCEL_DEPLOYMENT.md
 DEPLOYMENT_SUCCESS.md
 VERCEL_URLS.md
-vercel.json
 test-deployment.sh
 frontend/.env.production
