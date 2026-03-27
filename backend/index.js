@@ -60,9 +60,5 @@ if (process.env.NODE_ENV !== "production") {
     console.log(`[DEBUG] Server running on http://localhost:${PORT}`);
   });
 }
-});
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`[DEBUG] Server running on http://localhost:${PORT}`);
-});
+export default app;
