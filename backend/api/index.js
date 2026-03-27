@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express();
 
-// CORS Configuration
+// CORS
 app.use(cors({
   origin: true,
   credentials: true,
@@ -14,54 +14,61 @@ app.use(cors({
 
 app.use(express.json());
 
-// Basic health check - test this first
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "API is running" });
 });
 
-// Lazy load modules only when needed
-let authRoutesLoaded = false;
-let taskRoutesLoaded = false;
-let analyticsRoutesLoaded = false;
+// Middleware to load routes on first request
+let routesLoaded = false;
 
-// Load routes on demand
-const setupRoutes = async (app) => {
+const loadRoutes = async () => {
+  if (routesLoaded) return;
+  
   try {
-    if (!authRoutesLoaded) {
-      const { default: connectDB } = await import("../config/db.js");
-      const { default: authRoutes } = await import("../modules/auth/auth.routes.js");
-      const { default: taskRoutes } = await import("../modules/task/task.route.js");
-      const { default: analyticsRoutes } = await import("../modules/analytics/analytics.routes.js");
-      
-      // Try to connect DB once
-      try {
-        await connectDB();
-        console.log("[DEBUG] Database connected");
-      } catch (error) {
-        console.error("[ERROR] DB Connection failed:", error.message);
-      }
-      
-      app.use("/api/auth", authRoutes);
-      app.use("/api/tasks", taskRoutes);
-      app.use("/api/analytics", analyticsRoutes);
-      
-      authRoutesLoaded = true;
+    console.log("[DEBUG] Loading dependencies...");
+    
+    // Import database
+    const { default: connectDB } = await import("../config/db.js");
+    console.log("[DEBUG] connectDB imported");
+    
+    // Import routes
+    const { default: authRoutes } = await import("../modules/auth/auth.routes.js");
+    const { default: taskRoutes } = await import("../modules/task/task.route.js");
+    const { default: analyticsRoutes } = await import("../modules/analytics/analytics.routes.js");
+    console.log("[DEBUG] Routes imported");
+    
+    // Connect to database
+    try {
+      await connectDB();
+      console.log("[DEBUG] Database connected");
+    } catch (dbError) {
+      console.error("[ERROR] Database connection failed:", dbError.message);
     }
+    
+    // Register routes
+    app.use("/api/auth", authRoutes);
+    app.use("/api/tasks", taskRoutes);
+    app.use("/api/analytics", analyticsRoutes);
+    console.log("[DEBUG] Routes registered");
+    
+    routesLoaded = true;
   } catch (error) {
     console.error("[ERROR] Failed to load routes:", error.message);
+    console.error(error.stack);
   }
 };
 
-// Middleware to setup routes before handling requests
+// Load routes middleware
 app.use(async (req, res, next) => {
-  await setupRoutes(app);
+  await loadRoutes();
   next();
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error("[ERROR]", err);
-  res.status(err.statusCode || 500).json({
+  res.status(500).json({
     success: false,
     message: err.message || "Internal Server Error"
   });
@@ -72,5 +79,4 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// Export for Vercel
 export default app;
