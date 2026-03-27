@@ -29,9 +29,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Misc
+# Vercel
+.vercel/
 .vercel
-.env.example
+backend/.vercel
+frontend/.vercel
 
 # Deployment & Documentation (local use only)
 DEPLOYMENT_CHECKLIST.md
@@ -40,6 +42,5 @@ VERCEL_DEPLOYMENT.md
 DEPLOYMENT_SUCCESS.md
 VERCEL_URLS.md
 vercel.json
-.github/workflows/deploy.yml
 test-deployment.sh
 frontend/.env.production
