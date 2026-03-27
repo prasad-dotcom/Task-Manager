@@ -2,6 +2,8 @@
 
 A full-stack task management application with authentication, Kanban board, analytics, and task tracking.
 
+[Watch Project Demo Video](https://github.com/user-attachments/assets/d156af9e-1ebe-42e7-b639-ebbcf6d4310d)
+
 
 ## Project Structure
 
@@ -13,7 +15,7 @@ task-manager/
 │   │   ├── task/
 │   │   └── analytics/
 
-https://github.com/user-attachments/assets/d156af9e-1ebe-42e7-b639-ebbcf6d4310d
+
 
 
 │   ├── models/
