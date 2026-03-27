@@ -1,4 +1,45 @@
+# Backend
 backend/node_modules/
-
 backend/.env
+backend/.env.local
+backend/dist/
+
+# Frontend
+frontend/node_modules/
 frontend/.env
+frontend/.env.local
+frontend/.env.production.local
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.vercel
+.env.example
+
+# Deployment & Documentation (local use only)
+DEPLOYMENT_CHECKLIST.md
+FIX_DEPLOYMENT.md
+VERCEL_DEPLOYMENT.md
+DEPLOYMENT_SUCCESS.md
+VERCEL_URLS.md
+vercel.json
+.github/workflows/deploy.yml
+test-deployment.sh
+frontend/.env.production

@@ -1,13 +1,31 @@
 // axios.js
 import axios from "axios";
 
+// For separate Vercel deployments:
+// Frontend: https://task-manager-frontend-eight-tawny.vercel.app
+// Backend:  https://task-manager-chi-two-69.vercel.app
+
+const getBaseURL = () => {
+  // If explicitly set via environment variable, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Development (local): use localhost backend
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:5000/api";
+  }
+  
+  // Production on Vercel: use the deployed backend URL
+  // Note: Update this URL to match your backend Vercel deployment
+  return "https://task-manager-chi-two-69.vercel.app/api";
+};
+
 const instance = axios.create({
-  // Uses REACT_APP_API_URL from .env — falls back to deployed backend.
-  baseURL: process.env.REACT_APP_API_URL || "https://task-manager-chi-two-69.vercel.app/api",
-  // withCredentials is NOT needed — this app uses JWT Bearer tokens, not cookies.
+  baseURL: getBaseURL(),
 });
 
-// Attach JWT token from localStorage on every request.
+// Attach JWT token from localStorage on every request
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -16,7 +34,7 @@ instance.interceptors.request.use((config) => {
   return config;
 });
 
-// If the server returns 401 (token expired/invalid), clear the stored token.
+// Handle 401 responses (token expired/invalid)
 instance.interceptors.response.use(
   (res) => res,
   (error) => {
