@@ -1,16 +1,5 @@
-import "dotenv/config";
-import connectDB from "../config/db.js";
-import app from "../server.js";
+import app from "../index.js";
 
-// Connect to MongoDB before handling any requests
-await connectDB();
-
-// Only listen if this file is run directly (not imported by Vercel)
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`[DEBUG] Server running on http://localhost:${PORT}`);
-  });
-}
-
+// Export app for Vercel serverless functions
+// Database connection will happen on first request via middleware
 export default app;
